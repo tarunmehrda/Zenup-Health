@@ -2,6 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>ZenUp Health needs camera access for video consultations with your therapist.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ZenUp Health needs microphone access for audio and video consultations.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ZenUp Health needs photo library access to upload your profile picture and health documents.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ZenUp Health uses Face ID to securely unlock your account.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>ZenUp Health needs contacts access to help you refer friends easily.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ZenUp Health uses the local network for video consultation connectivity.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+		<string>voip</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
