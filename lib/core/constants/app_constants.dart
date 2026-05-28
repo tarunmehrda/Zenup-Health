@@ -9,6 +9,6 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Assets constants
-  static const String zenupIconPng = 'lib/assets/zenup-icon.png';
-  static const String zenupIconAvif = 'lib/assets/zenup-icon.avif';
+  static const String zenupIconPng = 'assets/zenup-icon.png';
+  static const String zenupIconAvif = 'assets/zenup-icon.avif';
 }

@@ -4,17 +4,19 @@
 library features;
 
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_typography.dart';
+import '../../../app/router/app_routes.dart';
+import '../../../core/extensions/context_extensions.dart';
 
-// ── Therapy card image URLs ──
-// Using direct WordPress CDN URLs; images are pre-cached on screen entry.
-const List<String> _serviceSelectionImageUrls = [
-  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_kmaauqkmaauqkmaa.png',
-  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_8mz4h38mz4h38mz4-1.png',
-  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_11jezh11jezh11je.png',
+
+// ── Therapy card image assets ──
+const List<String> _serviceSelectionAssets = [
+  'assets/booking/booking_individual.png',
+  'assets/booking/booking_couples.png',
+  'assets/booking/booking_psychiatric.png',
 ];
 
 class ServiceSelectionScreen extends StatefulWidget {
@@ -93,22 +95,6 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
 
     _entryController.forward();
 
-    // Kick off image pre-caching immediately in initState so images are
-    // ready before the cards animate into view (no context needed for
-    // CachedNetworkImageProvider — only precacheImage needs context).
-    _warmImageCache();
-  }
-
-  /// Warms the CachedNetworkImage disk + memory cache for all therapy card
-  /// images. Called in initState so caching starts before the first frame.
-  void _warmImageCache() {
-    for (final url in _serviceSelectionImageUrls) {
-      // Prime the disk cache immediately (no context required).
-      CachedNetworkImageProvider(
-        url,
-        cacheKey: url,
-      ).resolve(const ImageConfiguration());
-    }
   }
 
   @override
@@ -116,12 +102,11 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
     super.didChangeDependencies();
     if (_didPrecacheImages) return;
     _didPrecacheImages = true;
-    // Also call Flutter's precacheImage so the decoded bitmap is in the
-    // image cache — this eliminates the decode-on-first-paint jank.
-    for (final url in _serviceSelectionImageUrls) {
+    // Call Flutter's precacheImage for local assets to avoid paint latency.
+    for (final asset in _serviceSelectionAssets) {
       unawaited(
         precacheImage(
-          CachedNetworkImageProvider(url, cacheKey: url),
+          AssetImage(asset),
           context,
         ).catchError((_) {}),
       );
@@ -315,19 +300,40 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                     // ── D. The 3 Service Cards ──
                     ServiceCardWidget(
                       title: 'Individual Therapy',
-                      icon: Icons.person_outline_rounded,
+                      icon: Icons.person_rounded,
                       buttonLabel: 'BOOK SESSION',
-                      imageUrl: _serviceSelectionImageUrls[0],
-                      onTap: () {}, // Placeholder click action
+                      imagePath: _serviceSelectionAssets[0],
+                      description: 'One-on-one therapy sessions tailored to your concerns and goals.',
+                      tags: const [
+                        'RCI-registered Experts',
+                        'Personalised Care',
+                        'Evidence-based',
+                        '100% Confidential',
+                        'Flexible Online Sessions',
+                        'Trauma & Grief',
+                        'Anxiety & Stress',
+                        'Safe Supportive Space',
+                      ],
+                      onTap: () => context.go(AppRoutes.authLogin),
                       entryFade: _cardFadeAnimations[0],
                       entrySlide: _cardSlideAnimations[0],
                     ),
                     ServiceCardWidget(
                       title: 'Couples Therapy',
-                      icon: Icons.people_outline_rounded,
+                      icon: Icons.people_rounded,
                       buttonLabel: 'BOOK SESSION',
-                      imageUrl: _serviceSelectionImageUrls[1],
-                      onTap: () {}, // Placeholder click action
+                      imagePath: _serviceSelectionAssets[1],
+                      description: 'Therapy sessions designed for partners who want to work on their relationship together.',
+                      tags: const [
+                        'Trained Practitioners',
+                        'Build Trust',
+                        'Conflict Resolution',
+                        'Evidence-based',
+                        'Neutral Space',
+                        'Strengthen Connections',
+                        'Improve Communication',
+                      ],
+                      onTap: () => context.go(AppRoutes.authLogin),
                       entryFade: _cardFadeAnimations[1],
                       entrySlide: _cardSlideAnimations[1],
                       imageAlignment: const Alignment(
@@ -337,10 +343,19 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                     ),
                     ServiceCardWidget(
                       title: 'Psychiatric Consultation',
-                      icon: Icons.medical_services_outlined,
+                      icon: Icons.medical_services_rounded,
                       buttonLabel: 'BOOK CONSULTATION',
-                      imageUrl: _serviceSelectionImageUrls[2],
-                      onTap: () {}, // Placeholder click action
+                      imagePath: _serviceSelectionAssets[2],
+                      description: 'One-on-one consultations with an MD Psychiatrist for clinical assessment and medication support.',
+                      tags: const [
+                        'MD Psychiatrist',
+                        'Clinical Assessment',
+                        'Medication Management',
+                        'Confidential Online',
+                        'Personalized Plan',
+                        'Comprehensive Evaluation',
+                      ],
+                      onTap: () => context.go(AppRoutes.authLogin),
                       entryFade: _cardFadeAnimations[2],
                       entrySlide: _cardSlideAnimations[2],
                     ),
@@ -360,7 +375,9 @@ class ServiceCardWidget extends StatefulWidget {
   final String title;
   final IconData icon;
   final String buttonLabel;
-  final String imageUrl;
+  final String imagePath;
+  final String description;
+  final List<String> tags;
   final VoidCallback onTap;
   final Alignment imageAlignment;
   final Animation<double> entryFade;
@@ -371,7 +388,9 @@ class ServiceCardWidget extends StatefulWidget {
     required this.title,
     required this.icon,
     required this.buttonLabel,
-    required this.imageUrl,
+    required this.imagePath,
+    required this.description,
+    required this.tags,
     required this.onTap,
     required this.entryFade,
     required this.entrySlide,
@@ -384,179 +403,276 @@ class ServiceCardWidget extends StatefulWidget {
 
 class _ServiceCardWidgetState extends State<ServiceCardWidget>
     with SingleTickerProviderStateMixin {
-  bool _isPressed = false;
-  late AnimationController _pressController;
-  late Animation<double> _scaleAnimation;
+  bool _showDetails = false;
+  late AnimationController _detailsController;
 
   @override
   void initState() {
     super.initState();
-    _pressController = AnimationController(
+    _detailsController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 375),
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.98,
-    ).animate(CurvedAnimation(parent: _pressController, curve: Curves.easeOut));
   }
 
   @override
   void dispose() {
-    _pressController.dispose();
+    _detailsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([widget.entryFade, widget.entrySlide]),
-      builder: (context, child) {
+      animation: Listenable.merge([widget.entryFade, widget.entrySlide, _detailsController]),
+      builder: (context, _) {
+        final double height = Tween<double>(begin: 260.0, end: 500.0)
+            .animate(CurvedAnimation(
+              parent: _detailsController,
+              curve: Curves.fastOutSlowIn,
+            ))
+            .value;
+        final double blurValue = Tween<double>(begin: 0.0, end: 8.0)
+            .animate(CurvedAnimation(
+              parent: _detailsController,
+              curve: Curves.easeInOut,
+            ))
+            .value;
+
         return Opacity(
           opacity: widget.entryFade.value,
           child: Transform.translate(
             offset: Offset(0, widget.entrySlide.value),
-            child: child,
-          ),
-        );
-      },
-      child: GestureDetector(
-        onTapDown: (_) {
-          setState(() => _isPressed = true);
-          _pressController.forward();
-        },
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          _pressController.reverse();
-          widget.onTap();
-        },
-        onTapCancel: () {
-          setState(() => _isPressed = false);
-          _pressController.reverse();
-        },
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            height: 380, // Portrait aspect ratio (~4:5)
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: _isPressed ? 0.12 : 0.06,
-                  ),
-                  blurRadius: _isPressed ? 32 : 24,
-                  offset: const Offset(0, 8),
+            child: GestureDetector(
+              onTap: () {
+                if (_showDetails) {
+                  _detailsController.reverse();
+                } else {
+                  _detailsController.forward();
+                }
+                setState(() {
+                  _showDetails = !_showDetails;
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                height: height,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(_showDetails ? 0.12 : 0.06),
+                      blurRadius: _showDetails ? 32 : 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Stack(
-                children: [
-                  // 1. Cover Image
-                  Positioned.fill(
-                    child: CachedNetworkImage(
-                      imageUrl: widget.imageUrl,
-                      cacheKey: widget.imageUrl,
-                      fit: BoxFit.cover,
-                      alignment: widget.imageAlignment,
-                      memCacheWidth: 800,
-                      maxWidthDiskCache: 1200,
-                      fadeInDuration: const Duration(milliseconds: 200),
-                      fadeOutDuration: Duration.zero,
-                      placeholderFadeInDuration: Duration.zero,
-                      useOldImageOnUrlChange: true,
-                      imageBuilder: (context, imageProvider) => Image(
-                        image: imageProvider,
-                        fit: BoxFit.cover,
-                        alignment: widget.imageAlignment,
-                        gaplessPlayback: true,
-                        filterQuality: FilterQuality.medium,
-                      ),
-                      placeholder: (context, url) => _TherapyCardPlaceholder(
-                        alignment: widget.imageAlignment,
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFFFFF1E6),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: Color(0xFFF47B20),
-                            size: 40,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Stack(
+                    children: [
+                      // 1. Cover Image
+                      Positioned.fill(
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(sigmaX: blurValue, sigmaY: blurValue),
+                          child: Image.asset(
+                            widget.imagePath,
+                            fit: BoxFit.cover,
+                            alignment: widget.imageAlignment,
+                            gaplessPlayback: true,
+                            filterQuality: FilterQuality.medium,
                           ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // 2. Dark Overlay Gradient transparent -> rgba(20,18,16,0.75) bottom 45%
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Color.fromRGBO(20, 18, 16, 0.75),
-                          ],
-                          stops: [0.55, 1.0],
+                      // 2. Dark Overlay Gradient
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.1 + (0.35 * _detailsController.value)),
+                                Colors.black.withOpacity(0.75 + (0.1 * _detailsController.value)),
+                              ],
+                              stops: const [0.4, 1.0],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // 3. Content bottom-left
-                  Positioned(
-                    left: 20,
-                    bottom: 24,
-                    right: 20,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                letterSpacing: -0.2,
-                                fontFamily: AppTypography.fontFamily,
+                      // 3. Collapsed View Content
+                      if (_detailsController.value < 1.0)
+                        Positioned(
+                          left: 20,
+                          bottom: 24,
+                          right: 20,
+                          child: Opacity(
+                            opacity: 1.0 - _detailsController.value,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      widget.title,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 22,
+                                        letterSpacing: -0.4,
+                                        fontFamily: AppTypography.fontFamily,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(widget.icon, color: Colors.white, size: 20),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Tap to view details & features',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.75),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w400,
+                                        fontFamily: AppTypography.fontFamily,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.white.withOpacity(0.75),
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // 4. Expanded View Content
+                      if (_detailsController.value > 0.0)
+                        Positioned(
+                          left: 20,
+                          top: 24,
+                          right: 20,
+                          bottom: 24,
+                          child: Opacity(
+                            opacity: _detailsController.value,
+                            child: Transform.translate(
+                              offset: Offset(0, 15.0 * (1.0 - _detailsController.value)),
+                              child: SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: height - 48,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  widget.title,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 24,
+                                                    letterSpacing: -0.5,
+                                                    fontFamily: AppTypography.fontFamily,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                widget.icon,
+                                                color: const Color(0xFFF47B20),
+                                                size: 26,
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            widget.description,
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.9),
+                                              fontSize: 14.5,
+                                              height: 1.45,
+                                              fontWeight: FontWeight.w400,
+                                              fontFamily: AppTypography.fontFamily,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: widget.tags.map((tag) => Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(50),
+                                                border: Border.all(
+                                                  color: Colors.white.withOpacity(0.25),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                tag,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  fontFamily: AppTypography.fontFamily,
+                                                ),
+                                              ),
+                                            )).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                      Column(
+                                        children: [
+                                          const SizedBox(height: 16),
+                                          AnimatedCardButton(
+                                            label: widget.buttonLabel,
+                                            onTap: widget.onTap,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Icon(widget.icon, color: Colors.white, size: 18),
-                          ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        AnimatedCardButton(
-                          label: widget.buttonLabel,
-                          onTap: widget.onTap,
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  // 4. Thin solid orange accent bar along the very bottom edge of the card
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 4,
-                    child: Container(color: const Color(0xFFF47B20)),
+                      // 5. Thin solid orange accent bar along the very bottom edge of the card
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: 4,
+                        child: Container(color: const Color(0xFFF47B20)),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -623,20 +739,27 @@ class _AnimatedCardButtonState extends State<AnimatedCardButton>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          height: 48,
+          width: double.infinity,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _isPressed ? darkOrangeColor : orangeColor,
             borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: orangeColor.withOpacity(0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Text(
             widget.label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.05,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.2,
               fontFamily: AppTypography.fontFamily,
             ),
           ),

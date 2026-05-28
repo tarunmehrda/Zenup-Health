@@ -9,7 +9,6 @@ library features;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/router/app_routes.dart';
 import '../../../core/constants/app_constants.dart';
@@ -61,17 +60,17 @@ class _SplashScreenState extends State<SplashScreen>
     if (_didPrecache) return;
     _didPrecache = true;
 
-    // Pre-cache critical heavy images during splash screen idle time
-    const criticalImageUrls = [
-      'https://res.cloudinary.com/dalzfjt8f/image/upload/v1775200162/Gemini_Generated_Image_9ile2d9ile2d9ile_jphxwo.png',
-      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_kmaauqkmaauqkmaa.png',
-      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_8mz4h38mz4h38mz4-1.png',
-      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_11jezh11jezh11je.png',
+    // Pre-cache critical heavy local assets during splash screen idle time
+    const criticalAssets = [
+      'assets/onboarding/onboarding_hero.png',
+      'assets/booking/booking_individual.png',
+      'assets/booking/booking_couples.png',
+      'assets/booking/booking_psychiatric.png',
     ];
 
-    for (final url in criticalImageUrls) {
+    for (final asset in criticalAssets) {
       precacheImage(
-        CachedNetworkImageProvider(url, cacheKey: url),
+        AssetImage(asset),
         context,
       ).catchError((_) {});
     }
