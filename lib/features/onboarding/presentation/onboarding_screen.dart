@@ -24,13 +24,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   double _currentPage = 0.0;
   int _currentIndex = 0;
-  Timer? _autoAdvanceTimer;
+
 
   @override
   void initState() {
     super.initState();
     _pageController.addListener(_onPageScroll);
-    _startTimer();
   }
 
   void _onPageScroll() {
@@ -42,26 +41,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _startTimer() {
-    _autoAdvanceTimer?.cancel();
-    // Do not schedule auto-advance if we've reached the last slide (index 4)
-    if (_currentIndex >= 4) {
-      return;
-    }
-    _autoAdvanceTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
-      if (_currentIndex < 4) {
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 380),
-          curve: const Cubic(0.25, 0.46, 0.45, 0.94),
-        );
-      } else {
-        timer.cancel();
-      }
-    });
-  }
+
 
   Future<void> _completeOnboarding() async {
-    _autoAdvanceTimer?.cancel();
     final box = Hive.box('settings');
     await box.put('onboarding_complete', true);
     if (mounted) {
@@ -73,7 +55,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _pageController.removeListener(_onPageScroll);
     _pageController.dispose();
-    _autoAdvanceTimer?.cancel();
     super.dispose();
   }
 
@@ -91,9 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               controller: _pageController,
               itemCount: 5,
               physics: const BouncingScrollPhysics(),
-              onPageChanged: (index) {
-                _startTimer();
-              },
+
               itemBuilder: (context, index) {
                 final pageOffset = _currentPage - index;
                 switch (index) {
@@ -171,49 +150,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildPageIndicator() {
     const double dotSize = 8.0;
-    const double spacing = 12.0;
-    const double itemWidth = dotSize + spacing; // 20.0
     const int count = 5;
 
-    return SizedBox(
-      height: 12,
-      width: (count - 1) * itemWidth + 28.0, // 4 * 20 + 28 = 108.0
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          // Inactive dots row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(count, (index) {
-              return Container(
-                width: dotSize,
-                height: dotSize,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE5E7EB),
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(count, (index) {
+        final isActive = index == _currentIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          width: dotSize,
+          height: dotSize,
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFFF47B20) : const Color(0xFFE5E7EB),
+            shape: BoxShape.circle,
           ),
-          // Active dot sliding continuously
-          Positioned(
-            left: _currentPage * itemWidth,
-            child: Container(
-              width: 28,
-              height: 8,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A6CFF),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      }),
     );
   }
 }
 
-// ── Image Helper with Shimmer and Error Placeholder ──
+// â”€â”€ Image Helper with Shimmer and Error Placeholder â”€â”€
 Widget _buildNetworkImage(String url, {double? width, double? height, BoxFit fit = BoxFit.cover, double borderRadius = 0}) {
   return ClipRRect(
     borderRadius: BorderRadius.circular(borderRadius),
@@ -248,7 +206,7 @@ Widget _buildNetworkImage(String url, {double? width, double? height, BoxFit fit
   );
 }
 
-// ── Trust Badge Helper ──
+// â”€â”€ Trust Badge Helper â”€â”€
 Widget _buildTrustBadge(IconData icon, Color iconColor, String text) {
   return Container(
     height: 32,
@@ -276,7 +234,7 @@ Widget _buildTrustBadge(IconData icon, Color iconColor, String text) {
   );
 }
 
-// ── Slide 1: Brand Hero ──
+// â”€â”€ Slide 1: Brand Hero â”€â”€
 class _SlideOne extends StatefulWidget {
   final bool isActive;
   final double pageOffset;
@@ -380,7 +338,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
               height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEEF0FF).withValues(alpha: 0.5),
+                color: const Color(0xFFFFF1E6).withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -440,7 +398,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF1A6CFF).withValues(alpha: 0.08),
+                                  color: const Color(0xFFF47B20).withValues(alpha: 0.08),
                                   blurRadius: 20,
                                   offset: const Offset(0, 4),
                                 ),
@@ -454,7 +412,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
                                   color: const Color(0xFFF3F4F6),
                                   child: const Icon(
                                     Icons.spa_rounded,
-                                    color: Color(0xFF1A6CFF),
+                                    color: Color(0xFFF47B20),
                                     size: 40,
                                   ),
                                 ),
@@ -536,7 +494,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
         ),
         Opacity(
           opacity: b3,
-          child: _buildTrustBadge(Icons.lock_outline_rounded, const Color(0xFF1A6CFF), "No Bots. Ever"),
+          child: _buildTrustBadge(Icons.lock_outline_rounded, const Color(0xFFF47B20), "No Bots. Ever"),
         ),
       ],
     );
@@ -552,7 +510,7 @@ extension on AnimationController {
   }
 }
 
-// ── Slide 2: Services Grid ──
+// â”€â”€ Slide 2: Services Grid â”€â”€
 class _SlideTwo extends StatefulWidget {
   final bool isActive;
   final double pageOffset;
@@ -697,7 +655,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEEF0FF),
+                                color: const Color(0xFFFFF1E6),
                                 borderRadius: BorderRadius.circular(50),
                               ),
                               child: const Text(
@@ -705,7 +663,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1A6CFF),
+                                  color: Color(0xFFF47B20),
                                   letterSpacing: 0.08,
                                 ),
                               ),
@@ -875,7 +833,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
   }
 }
 
-// ── Slide 3: Real Therapists ──
+// â”€â”€ Slide 3: Real Therapists â”€â”€
 class _SlideThree extends StatefulWidget {
   final bool isActive;
   final double pageOffset;
@@ -1054,7 +1012,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEEF0FF).withValues(alpha: 0.35),
+                color: const Color(0xFFFFF1E6).withValues(alpha: 0.35),
               ),
             ),
           ),
@@ -1071,7 +1029,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF1A6CFF).withValues(alpha: 0.03),
+                color: const Color(0xFFF47B20).withValues(alpha: 0.03),
               ),
             ),
           ),
@@ -1125,7 +1083,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEEF0FF),
+                                      color: const Color(0xFFFFF1E6),
                                       borderRadius: BorderRadius.circular(50),
                                     ),
                                     child: const Text(
@@ -1133,7 +1091,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF1A6CFF),
+                                        color: Color(0xFFF47B20),
                                         letterSpacing: 0.08,
                                       ),
                                     ),
@@ -1257,7 +1215,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
       },
       {
         'icon': Icons.history_edu_outlined,
-        'color': const Color(0xFF1A6CFF),
+        'color': const Color(0xFFF47B20),
         'title': '8+ Yrs Avg',
         'sub': 'Clinical exp'
       },
@@ -1422,12 +1380,12 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
 
   Widget _buildSpecialtyRow() {
     final specialtyIcons = {
-      'CBT': '🧠',
-      'REBT': '🎯',
-      'Trauma': '🛡️',
-      'Grief': '🤍',
-      'ADHD': '⚡',
-      'Couples': '🤝',
+      'CBT': '',
+      'REBT': '',
+      'Trauma': '',
+      'Grief': '',
+      'ADHD': '',
+      'Couples': '',
     };
 
     return Wrap(
@@ -1436,7 +1394,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
       runSpacing: 8,
       children: List.generate(_specialties.length, (index) {
         final name = _specialties[index];
-        final emoji = specialtyIcons[name] ?? '✨';
+        final emoji = specialtyIcons[name] ?? 'âœ¨';
         double start = 0.4 + (index * 0.08);
         double end = start + 0.3;
         double opacity = Tween<double>(begin: 0.0, end: 1.0)
@@ -1477,7 +1435,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
   }
 }
 
-// ── Slide 4: Social Proof ──
+// â”€â”€ Slide 4: Social Proof â”€â”€
 class _SlideFour extends StatefulWidget {
   final bool isActive;
   final double pageOffset;
@@ -1615,7 +1573,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
               height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEEF0FF).withValues(alpha: 0.5),
+                color: const Color(0xFFFFF1E6).withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -1668,7 +1626,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEEF0FF),
+                                      color: const Color(0xFFFFF1E6),
                                       borderRadius: BorderRadius.circular(50),
                                     ),
                                     child: const Text(
@@ -1676,7 +1634,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF1A6CFF),
+                                        color: Color(0xFFF47B20),
                                       ),
                                     ),
                                   ),
@@ -1737,7 +1695,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                         label: "Lives Impacted",
                                         suffix: "+",
                                         icon: Icons.people_alt_outlined,
-                                        iconColor: const Color(0xFF1A6CFF),
+                                        iconColor: const Color(0xFFF47B20),
                                         isActive: widget.isActive,
                                       ),
                                       _AnimatedMetricCard(
@@ -1753,7 +1711,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                         label: "Expert Therapists",
                                         suffix: "+",
                                         icon: Icons.workspace_premium_outlined,
-                                        iconColor: const Color(0xFF1A6CFF),
+                                        iconColor: const Color(0xFFF47B20),
                                         isActive: widget.isActive,
                                       ),
                                       _AnimatedMetricCard(
@@ -1796,7 +1754,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                             width: isDotActive ? 12 : 4,
                                             height: 4,
                                             decoration: BoxDecoration(
-                                              color: isDotActive ? const Color(0xFF1A6CFF) : const Color(0xFFE5E7EB),
+                                              color: isDotActive ? const Color(0xFFF47B20) : const Color(0xFFE5E7EB),
                                               borderRadius: BorderRadius.circular(2),
                                             ),
                                           );
@@ -1865,7 +1823,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
             bottom: 0,
             child: Container(
               width: 4,
-              color: const Color(0xFF1A6CFF),
+              color: const Color(0xFFF47B20),
             ),
           ),
           
@@ -1876,13 +1834,13 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: const BoxDecoration(
-                color: Color(0xFFEEF0FF),
+                color: Color(0xFFFFF1E6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.format_quote_rounded,
                 size: 14,
-                color: Color(0xFF1A6CFF),
+                color: Color(0xFFF47B20),
               ),
             ),
           ),
@@ -1912,7 +1870,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                       width: 36,
                       height: 36,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFEEF0FF),
+                        color: Color(0xFFFFF1E6),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -1921,7 +1879,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A6CFF),
+                            color: Color(0xFFF47B20),
                           ),
                         ),
                       ),
@@ -1941,7 +1899,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${t['location']!} • ${t['service']!}',
+                            '${t['location']!} â€¢ ${t['service']!}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF9CA3AF),
@@ -1961,7 +1919,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
   }
 }
 
-// ── Slide 5: Final CTA ──
+// â”€â”€ Slide 5: Final CTA â”€â”€
 class _SlideFive extends StatefulWidget {
   final bool isActive;
   final double pageOffset;
@@ -2140,7 +2098,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
               height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF1A6CFF).withValues(alpha: 0.04),
+                color: const Color(0xFFF47B20).withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -2206,12 +2164,12 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               shape: BoxShape.circle,
                                               color: Colors.white,
                                               border: Border.all(
-                                                color: const Color(0xFF1A6CFF).withValues(alpha: 0.1),
+                                                color: const Color(0xFFF47B20).withValues(alpha: 0.1),
                                                 width: 4.0,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: const Color(0xFF1A6CFF).withValues(alpha: glowVal),
+                                                  color: const Color(0xFFF47B20).withValues(alpha: glowVal),
                                                   blurRadius: 28 + (glowVal * 40),
                                                   spreadRadius: 2 + (glowVal * 8),
                                                   offset: const Offset(0, 6),
@@ -2233,7 +2191,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                                     color: const Color(0xFFF3F4F6),
                                                     child: const Icon(
                                                       Icons.spa_rounded,
-                                                      color: Color(0xFF1A6CFF),
+                                                      color: Color(0xFFF47B20),
                                                       size: 48,
                                                     ),
                                                   ),
@@ -2317,14 +2275,14 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               height: 56,
                                               decoration: BoxDecoration(
                                                 gradient: const LinearGradient(
-                                                  colors: [Color(0xFF1A6CFF), Color(0xFF0056E0)],
+                                                  colors: [Color(0xFFF47B20), Color(0xFFE06A12)],
                                                   begin: Alignment.centerLeft,
                                                   end: Alignment.centerRight,
                                                 ),
                                                 borderRadius: BorderRadius.circular(16),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: const Color(0xFF1A6CFF).withValues(alpha: 0.25),
+                                                    color: const Color(0xFFF47B20).withValues(alpha: 0.25),
                                                     blurRadius: 16,
                                                     offset: const Offset(0, 6),
                                                   ),
@@ -2332,7 +2290,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               ),
                                               child: const Center(
                                                 child: Text(
-                                                  "Get Started — It's Free",
+                                                  "Get Started",
                                                   style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w700,
@@ -2388,7 +2346,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF1A6CFF),
+                                              color: Color(0xFFF47B20),
                                               decoration: TextDecoration.underline,
                                             ),
                                           ),
@@ -2422,8 +2380,8 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
     final list = [
       {
         'icon': Icons.lock_outline_rounded,
-        'color': const Color(0xFF1A6CFF),
-        'bg': const Color(0xFF1A6CFF).withValues(alpha: 0.08),
+        'color': const Color(0xFFF47B20),
+        'bg': const Color(0xFFF47B20).withValues(alpha: 0.08),
         'lbl': '100% Private',
         'sub': 'Strict confidentiality under clinical guidelines. No recordings.',
       },
@@ -2436,8 +2394,8 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
       },
       {
         'icon': Icons.favorite_border_rounded,
-        'color': const Color(0xFF1A6CFF),
-        'bg': const Color(0xFF1A6CFF).withValues(alpha: 0.08),
+        'color': const Color(0xFFF47B20),
+        'bg': const Color(0xFFF47B20).withValues(alpha: 0.08),
         'lbl': 'True Human Care',
         'sub': 'No AI, bots, or canned answers. Real empathetic therapists.',
       },
@@ -2547,7 +2505,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF1A6CFF).withValues(alpha: 0.05),
+                const Color(0xFFF47B20).withValues(alpha: 0.05),
                 const Color(0xFF00C9A7).withValues(alpha: 0.03),
               ],
               begin: Alignment.topLeft,
@@ -2555,7 +2513,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF1A6CFF).withValues(alpha: 0.08),
+              color: const Color(0xFFF47B20).withValues(alpha: 0.08),
             ),
           ),
           child: Row(
@@ -2568,7 +2526,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                 ),
                 child: const Icon(
                   Icons.verified_outlined,
-                  color: Color(0xFF1A6CFF),
+                  color: Color(0xFFF47B20),
                   size: 20,
                 ),
               ),
@@ -2642,7 +2600,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
   }
 }
 
-// ── Metric Count-up Card ──
+// â”€â”€ Metric Count-up Card â”€â”€
 class _AnimatedMetricCard extends StatefulWidget {
   final double targetValue;
   final String label;
@@ -2740,7 +2698,7 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: widget.valueColor ?? const Color(0xFF1A6CFF),
+                        color: widget.valueColor ?? const Color(0xFFF47B20),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -2774,3 +2732,4 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
     );
   }
 }
+

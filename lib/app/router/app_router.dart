@@ -13,6 +13,7 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/discovery/presentation/discovery_screen.dart';
 import '../../features/discovery/presentation/provider_profile_screen.dart';
 import '../../features/booking/presentation/booking_flow_screen.dart';
+import '../../features/booking/presentation/service_selection_screen.dart';
 import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/messaging/presentation/messaging_screen.dart';
 import '../../features/wellness/presentation/wellness_screen.dart';
@@ -31,7 +32,7 @@ class AppRouter {
       case AppRoutes.authLogin:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case AppRoutes.serviceSelection:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(builder: (_) => const ServiceSelectionScreen());
       case AppRoutes.authSignup:
         return MaterialPageRoute(builder: (_) => const SignupScreen());
       case AppRoutes.profileSetup:

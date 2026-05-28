@@ -9,9 +9,7 @@ library features;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_typography.dart';
 import '../../../app/router/app_routes.dart';
 import '../../../core/constants/app_constants.dart';
 
@@ -34,13 +32,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   // ── Progress bar animation (0→100%, 2.5s) ──
   late AnimationController _progressController;
-  late Animation<double> _progressWidth;
 
-  // ── Fade-in for brand text ──
+  // ── Fade-in for logo ──
   late AnimationController _fadeController;
   late Animation<double> _logoOpacity;
-  late Animation<double> _titleOpacity;
-  late Animation<double> _subtitleOpacity;
 
   @override
   void initState() {
@@ -97,9 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 2500),
     );
 
-    _progressWidth = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeOut),
-    );
+
 
     // ── Fade in sequence: logo → title → subtitle ──
     _fadeController = AnimationController(
@@ -110,23 +103,11 @@ class _SplashScreenState extends State<SplashScreen>
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _fadeController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
       ),
     );
 
-    _titleOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
-      ),
-    );
 
-    _subtitleOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-      ),
-    );
 
     // Start animations
     _fadeController.forward();
@@ -141,13 +122,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateNext() {
     if (!mounted) return;
-    final box = Hive.box('settings');
-    final bool completed = box.get('onboarding_complete', defaultValue: false);
-    if (completed) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.authLogin);
-    } else {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
-    }
+    Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
   }
 
   @override
@@ -192,8 +167,8 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Transform.rotate(
                             angle: _rockAngle.value * (math.pi / 180),
                             child: Container(
-                              width: 128,
-                              height: 128,
+                              width: 256,
+                              height: 256,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 boxShadow: [
@@ -219,7 +194,7 @@ class _SplashScreenState extends State<SplashScreen>
                                         child: Icon(
                                           Icons.spa_rounded,
                                           color: AppColors.primary,
-                                          size: 56,
+                                          size: 112,
                                         ),
                                       ),
                                     );
@@ -230,66 +205,13 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
 
-                        // ── Brand Title: "Zenup" ──
-                        Opacity(
-                          opacity: _titleOpacity.value,
-                          child: Text(
-                            'Zenup',
-                            style: AppTypography.headlineLargeMobile.copyWith(
-                              color: AppColors.primary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // ── Subtitle: "Productive Calm" ──
-                        Opacity(
-                          opacity: _subtitleOpacity.value * 0.8,
-                          child: Text(
-                            'Productive Calm',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.secondary,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                 ),
 
-                // ── Progress bar at bottom ──
-                Positioned(
-                  bottom: 64,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      width: 48,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: FractionallySizedBox(
-                          widthFactor: _progressWidth.value,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(9999),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+
               ],
             );
           },
