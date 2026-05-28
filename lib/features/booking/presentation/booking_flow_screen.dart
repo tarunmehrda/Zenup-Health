@@ -69,9 +69,11 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundStart : AppColors.lightBackgroundStart,
+      backgroundColor: isDark ? AppColors.backgroundStart : Colors.white,
       appBar: AppBar(
         title: const Text('Schedule Consult'),
+        backgroundColor: isDark ? Colors.transparent : Colors.white,
+        elevation: 0,
         iconTheme: IconThemeData(
           color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
         ),

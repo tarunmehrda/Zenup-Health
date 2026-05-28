@@ -33,9 +33,11 @@ class _SplashScreenState extends State<SplashScreen>
   // ── Progress bar animation (0→100%, 2.5s) ──
   late AnimationController _progressController;
 
-  // ── Fade-in for logo ──
+  // ── Fade-in for logo & text ──
   late AnimationController _fadeController;
   late Animation<double> _logoOpacity;
+  late Animation<double> _titleOpacity;
+  late Animation<double> _subOpacity;
 
   @override
   void initState() {
@@ -103,7 +105,21 @@ class _SplashScreenState extends State<SplashScreen>
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _fadeController,
-        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _titleOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOut),
+      ),
+    );
+
+    _subOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
       ),
     );
 
@@ -161,57 +177,55 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ── Circular Logo with Organic Rock ──
                         Opacity(
                           opacity: _logoOpacity.value,
                           child: Transform.rotate(
                             angle: _rockAngle.value * (math.pi / 180),
-                            child: Container(
-                              width: 256,
-                              height: 256,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryContainer
-                                        .withValues(alpha: 0.15),
-                                    blurRadius: 30,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  AppConstants.zenupIconPng,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryFixed,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.spa_rounded,
-                                          color: AppColors.primary,
-                                          size: 112,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
+                            child: Image.asset(
+                              AppConstants.zenupIconPng,
+                              width: 160,
+                              height: 160,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.spa_rounded,
+                                  color: AppColors.primary,
+                                  size: 160,
+                                );
+                              },
                             ),
                           ),
                         ),
-
-
                       ],
                     ),
                   ),
                 ),
 
-
+                // ── Bottom progress loader ──
+                Positioned(
+                  bottom: 48,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Opacity(
+                      opacity: _logoOpacity.value,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: SizedBox(
+                          height: 2,
+                          width: 120,
+                          child: LinearProgressIndicator(
+                            value: _progressController.value,
+                            backgroundColor: const Color(0xFFE5E7EB),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             );
           },

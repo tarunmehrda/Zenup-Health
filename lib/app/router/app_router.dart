@@ -23,49 +23,152 @@ import 'app_routes.dart';
 class AppRouter {
   AppRouter._();
 
+  // ── Smooth fade + upward slide transition (premium feel) ──
+  static PageRouteBuilder<T> _fadeSlideRoute<T>({
+    required Widget page,
+    RouteSettings? settings,
+    Duration duration = const Duration(milliseconds: 380),
+  }) {
+    return PageRouteBuilder<T>(
+      settings: settings,
+      transitionDuration: duration,
+      reverseTransitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Incoming: fade in + slide up 18px
+        final fadeIn = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+        final slideIn =
+            Tween<Offset>(
+              begin: const Offset(0.0, 0.045),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
+
+        // Outgoing: subtle fade out
+        final fadeOut = Tween<double>(begin: 1.0, end: 0.92).animate(
+          CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeIn),
+        );
+
+        return FadeTransition(
+          opacity: fadeOut,
+          child: FadeTransition(
+            opacity: fadeIn,
+            child: SlideTransition(position: slideIn, child: child),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Horizontal slide transition (for drill-down flows) ──
+  static PageRouteBuilder<T> _slideRoute<T>({
+    required Widget page,
+    RouteSettings? settings,
+  }) {
+    return PageRouteBuilder<T>(
+      settings: settings,
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final slideIn =
+            Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
+
+        final slideOut =
+            Tween<Offset>(
+              begin: Offset.zero,
+              end: const Offset(-0.25, 0.0),
+            ).animate(
+              CurvedAnimation(
+                parent: secondaryAnimation,
+                curve: Curves.easeInCubic,
+              ),
+            );
+
+        final fadeOut = Tween<double>(begin: 1.0, end: 0.85).animate(
+          CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeIn),
+        );
+
+        return SlideTransition(
+          position: slideOut,
+          child: FadeTransition(
+            opacity: fadeOut,
+            child: SlideTransition(position: slideIn, child: child),
+          ),
+        );
+      },
+    );
+  }
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.splash:
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
+        return _fadeSlideRoute(
+          page: const SplashScreen(),
+          settings: settings,
+          duration: const Duration(milliseconds: 300),
+        );
       case AppRoutes.onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+        return _fadeSlideRoute(
+          page: const OnboardingScreen(),
+          settings: settings,
+        );
       case AppRoutes.authLogin:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return _fadeSlideRoute(page: const LoginScreen(), settings: settings);
       case AppRoutes.serviceSelection:
-        return MaterialPageRoute(builder: (_) => const ServiceSelectionScreen());
+        return _fadeSlideRoute(
+          page: const ServiceSelectionScreen(),
+          settings: settings,
+        );
       case AppRoutes.authSignup:
-        return MaterialPageRoute(builder: (_) => const SignupScreen());
+        return _slideRoute(page: const SignupScreen(), settings: settings);
       case AppRoutes.profileSetup:
-        return MaterialPageRoute(builder: (_) => const ProfileSetupScreen());
+        return _slideRoute(
+          page: const ProfileSetupScreen(),
+          settings: settings,
+        );
       case AppRoutes.home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return _fadeSlideRoute(page: const HomeScreen(), settings: settings);
       case AppRoutes.discovery:
-        return MaterialPageRoute(builder: (_) => const DiscoveryScreen());
+        return _slideRoute(page: const DiscoveryScreen(), settings: settings);
       case AppRoutes.providerProfile:
         final providerId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (_) => ProviderProfileScreen(providerId: providerId),
+        return _slideRoute(
+          page: ProviderProfileScreen(providerId: providerId),
+          settings: settings,
         );
       case AppRoutes.bookingFlow:
         final provider = settings.arguments as MockProvider?;
-        return MaterialPageRoute(
-          builder: (_) => BookingFlowScreen(provider: provider),
+        return _slideRoute(
+          page: BookingFlowScreen(provider: provider),
+          settings: settings,
         );
       case AppRoutes.appointments:
-        return MaterialPageRoute(builder: (_) => const AppointmentsScreen());
+        return _slideRoute(
+          page: const AppointmentsScreen(),
+          settings: settings,
+        );
       case AppRoutes.messaging:
-        return MaterialPageRoute(builder: (_) => const MessagingScreen());
+        return _slideRoute(page: const MessagingScreen(), settings: settings);
       case AppRoutes.wellness:
-        return MaterialPageRoute(builder: (_) => const WellnessScreen());
+        return _slideRoute(page: const WellnessScreen(), settings: settings);
       case AppRoutes.settings:
-        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+        return _slideRoute(page: const SettingsScreen(), settings: settings);
       default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
+        return _fadeSlideRoute(
+          page: Scaffold(
+            body: Center(child: Text('No route defined for ${settings.name}')),
           ),
+          settings: settings,
         );
     }
   }

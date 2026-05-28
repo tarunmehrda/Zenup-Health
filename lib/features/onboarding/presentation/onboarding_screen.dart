@@ -7,11 +7,28 @@ library features;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:hive/hive.dart';
 import '../../../app/router/app_routes.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../core/constants/app_constants.dart';
+
+const List<String> _onboardingImageUrls = [
+  'https://res.cloudinary.com/dalzfjt8f/image/upload/v1775200162/Gemini_Generated_Image_9ile2d9ile2d9ile_jphxwo.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_fd9kjafd9kjafd9k-1-scaled.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_nkb64knkb64knkb6.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_iw7i4diw7i4diw7i.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-3-scaled.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-4-scaled.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_2pgjzm2pgjzm2pgj-scaled.png',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/Bhoomi-2-e1767772602403.jpg',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/Anirudh-e1767771975908.png',
+  'https://zenuphealth.com/wp-content/uploads/2026/03/Profiles-new-12-e1772586242442.jpg',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-07-at-1.28.09-PM-1-e1767772797618.jpeg',
+  'https://zenuphealth.com/wp-content/uploads/2025/12/3.jpg',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/Alia-e1767772057623.jpeg',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/Tanya-e1767772524441.png',
+  'https://zenuphealth.com/wp-content/uploads/2026/01/Image-e1767772101515.jpeg',
+];
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -25,11 +42,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double _currentPage = 0.0;
   int _currentIndex = 0;
 
-
   @override
   void initState() {
     super.initState();
     _pageController.addListener(_onPageScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _precacheOnboardingImages();
+      }
+    });
   }
 
   void _onPageScroll() {
@@ -41,7 +62,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-
+  void _precacheOnboardingImages() {
+    for (final url in _onboardingImageUrls) {
+      final provider = ResizeImage.resizeIfNeeded(
+        720,
+        null,
+        CachedNetworkImageProvider(url, cacheKey: url),
+      );
+      unawaited(precacheImage(provider, context).catchError((_) {}));
+    }
+  }
 
   Future<void> _completeOnboarding() async {
     final box = Hive.box('settings');
@@ -72,7 +102,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               controller: _pageController,
               itemCount: 5,
               physics: const BouncingScrollPhysics(),
-
               itemBuilder: (context, index) {
                 final pageOffset = _currentPage - index;
                 switch (index) {
@@ -133,23 +162,58 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-            // Page Indicator (Bottom Center)
-            Positioned(
-              bottom: 24,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: _buildPageIndicator(),
+            // Page Indicator & Next Button
+            if (_currentIndex != 4)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.0),
+                        Colors.white.withValues(alpha: 0.95),
+                        Colors.white,
+                      ],
+                      stops: const [0.0, 0.35, 1.0],
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Page dots — left-aligned
+                      _buildPageIndicator(),
+                      // Next button — right-aligned
+                      _buildNextButton(),
+                    ],
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
+  void _nextPage() {
+    if (_currentIndex < 4) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 550),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  Widget _buildNextButton() {
+    return _NextButton(onTap: _nextPage);
+  }
+
   Widget _buildPageIndicator() {
-    const double dotSize = 8.0;
     const int count = 5;
 
     return Row(
@@ -157,13 +221,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       children: List.generate(count, (index) {
         final isActive = index == _currentIndex;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          width: dotSize,
-          height: dotSize,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: isActive ? 20.0 : 6.0,
+          height: 6.0,
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFFF47B20) : const Color(0xFFE5E7EB),
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(3),
           ),
         );
       }),
@@ -171,23 +236,126 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// â”€â”€ Image Helper with Shimmer and Error Placeholder â”€â”€
-Widget _buildNetworkImage(String url, {double? width, double? height, BoxFit fit = BoxFit.cover, double borderRadius = 0}) {
+// ── Stateful Next Button with press animation ──
+class _NextButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _NextButton({required this.onTap});
+
+  @override
+  State<_NextButton> createState() => _NextButtonState();
+}
+
+class _NextButtonState extends State<_NextButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pressController;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _pressController, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _pressController.forward(),
+      onTapUp: (_) {
+        _pressController.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _pressController.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0F1A),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D0F1A).withValues(alpha: 0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Next',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 17),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Image Helper with Cached Placeholder and Error Fallback â”€â”€
+Widget _buildNetworkImage(
+  String url, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.cover,
+  double borderRadius = 0,
+  int? cacheWidth,
+  int? cacheHeight,
+}) {
   return ClipRRect(
     borderRadius: BorderRadius.circular(borderRadius),
     child: CachedNetworkImage(
       imageUrl: url,
+      cacheKey: url,
       width: width,
       height: height,
       fit: fit,
-      placeholder: (context, url) => Shimmer.fromColors(
-        baseColor: const Color(0xFFF3F4F6),
-        highlightColor: Colors.white,
-        period: const Duration(milliseconds: 1500),
-        child: Container(
-          width: width ?? double.infinity,
-          height: height ?? double.infinity,
-          color: const Color(0xFFF3F4F6),
+      memCacheWidth: cacheWidth,
+      memCacheHeight: cacheHeight,
+      maxWidthDiskCache: cacheWidth == null ? 900 : cacheWidth * 2,
+      maxHeightDiskCache: cacheHeight == null ? null : cacheHeight * 2,
+      fadeInDuration: const Duration(milliseconds: 160),
+      fadeOutDuration: Duration.zero,
+      placeholderFadeInDuration: Duration.zero,
+      useOldImageOnUrlChange: true,
+      imageBuilder: (context, imageProvider) => Image(
+        image: imageProvider,
+        width: width,
+        height: height,
+        fit: fit,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+      ),
+      placeholder: (context, url) => Container(
+        width: width ?? double.infinity,
+        height: height ?? double.infinity,
+        color: const Color(0xFFF3F4F6),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: Color(0xFFD1D5DB), size: 22),
         ),
       ),
       errorWidget: (context, url, error) => Container(
@@ -250,7 +418,8 @@ class _SlideOne extends StatefulWidget {
   State<_SlideOne> createState() => _SlideOneState();
 }
 
-class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixin {
+class _SlideOneState extends State<_SlideOne>
+    with SingleTickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _titleOpacity;
@@ -371,6 +540,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
                         child: _buildNetworkImage(
                           'https://res.cloudinary.com/dalzfjt8f/image/upload/v1775200162/Gemini_Generated_Image_9ile2d9ile2d9ile_jphxwo.png',
                           fit: BoxFit.cover,
+                          cacheWidth: 900,
                         ),
                       ),
                     );
@@ -398,7 +568,9 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFF47B20).withValues(alpha: 0.08),
+                                  color: const Color(
+                                    0xFFF47B20,
+                                  ).withValues(alpha: 0.08),
                                   blurRadius: 20,
                                   offset: const Offset(0, 4),
                                 ),
@@ -408,14 +580,15 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
                               child: Image.asset(
                                 AppConstants.zenupIconPng,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  color: const Color(0xFFF3F4F6),
-                                  child: const Icon(
-                                    Icons.spa_rounded,
-                                    color: Color(0xFFF47B20),
-                                    size: 40,
-                                  ),
-                                ),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      color: const Color(0xFFF3F4F6),
+                                      child: const Icon(
+                                        Icons.spa_rounded,
+                                        color: Color(0xFFF47B20),
+                                        size: 40,
+                                      ),
+                                    ),
                               ),
                             ),
                           ),
@@ -458,7 +631,7 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
 
                         // Badges
                         _buildBadgeRow(),
-                        const SizedBox(height: 64), // Space at bottom for page indicator
+                        const SizedBox(height: 88), // Space at bottom for page indicator
                       ],
                     );
                   },
@@ -472,12 +645,18 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
   }
 
   Widget _buildBadgeRow() {
-    double b1 = Tween<double>(begin: 0.0, end: 1.0)
-        .transform(_entryController.getCurvePercent(0.4, 0.8));
-    double b2 = Tween<double>(begin: 0.0, end: 1.0)
-        .transform(_entryController.getCurvePercent(0.5, 0.9));
-    double b3 = Tween<double>(begin: 0.0, end: 1.0)
-        .transform(_entryController.getCurvePercent(0.6, 1.0));
+    double b1 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).transform(_entryController.getCurvePercent(0.4, 0.8));
+    double b2 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).transform(_entryController.getCurvePercent(0.5, 0.9));
+    double b3 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).transform(_entryController.getCurvePercent(0.6, 1.0));
 
     return Wrap(
       alignment: WrapAlignment.center,
@@ -486,15 +665,27 @@ class _SlideOneState extends State<_SlideOne> with SingleTickerProviderStateMixi
       children: [
         Opacity(
           opacity: b1,
-          child: _buildTrustBadge(Icons.shield_outlined, const Color(0xFF00C9A7), "100% Confidential"),
+          child: _buildTrustBadge(
+            Icons.shield_outlined,
+            const Color(0xFF00C9A7),
+            "100% Confidential",
+          ),
         ),
         Opacity(
           opacity: b2,
-          child: _buildTrustBadge(Icons.star_rounded, Colors.amber, "4.7/5 Rating"),
+          child: _buildTrustBadge(
+            Icons.star_rounded,
+            Colors.amber,
+            "4.7/5 Rating",
+          ),
         ),
         Opacity(
           opacity: b3,
-          child: _buildTrustBadge(Icons.lock_outline_rounded, const Color(0xFFF47B20), "No Bots. Ever"),
+          child: _buildTrustBadge(
+            Icons.lock_outline_rounded,
+            const Color(0xFFF47B20),
+            "No Bots. Ever",
+          ),
         ),
       ],
     );
@@ -526,7 +717,8 @@ class _SlideTwo extends StatefulWidget {
   State<_SlideTwo> createState() => _SlideTwoState();
 }
 
-class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixin {
+class _SlideTwoState extends State<_SlideTwo>
+    with SingleTickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _titleOpacity;
   late Animation<double> _titleTranslation;
@@ -534,28 +726,34 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
 
   final List<Map<String, String>> _services = [
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_fd9kjafd9kjafd9k-1-scaled.png',
-      'label': 'Anxiety / Stress'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_fd9kjafd9kjafd9k-1-scaled.png',
+      'label': 'Anxiety / Stress',
     },
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_nkb64knkb64knkb6.png',
-      'label': 'Depression'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_nkb64knkb64knkb6.png',
+      'label': 'Depression',
     },
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_iw7i4diw7i4diw7i.png',
-      'label': 'ADHD'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_iw7i4diw7i4diw7i.png',
+      'label': 'ADHD',
     },
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-3-scaled.png',
-      'label': 'Anger Issues'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-3-scaled.png',
+      'label': 'Anger Issues',
     },
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-4-scaled.png',
-      'label': 'Low Self-Esteem'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_bno9usbno9usbno9-4-scaled.png',
+      'label': 'Low Self-Esteem',
     },
     {
-      'url': 'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_2pgjzm2pgjzm2pgj-scaled.png',
-      'label': 'Relationship Counselling'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2025/11/Gemini_Generated_Image_2pgjzm2pgjzm2pgj-scaled.png',
+      'label': 'Relationship Counselling',
     },
   ];
 
@@ -637,9 +835,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -653,7 +849,10 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                           // Category tag
                           Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF1E6),
                                 borderRadius: BorderRadius.circular(50),
@@ -719,25 +918,37 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                              childAspectRatio: cardWidth / (cardWidth + 48),
-                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                  childAspectRatio:
+                                      cardWidth / (cardWidth + 48),
+                                ),
                             itemCount: 6,
                             itemBuilder: (context, index) {
                               final item = _services[index];
                               double start = 0.3 + (index * 0.06);
                               double end = start + 0.35;
-                              Animation<double> tileAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-                                CurvedAnimation(
-                                  parent: _entryController,
-                                  curve: Interval(start.clamp(0.0, 1.0), end.clamp(0.0, 1.0), curve: Curves.easeOut),
-                                ),
-                              );
+                              Animation<double> tileAnim =
+                                  Tween<double>(begin: 0.0, end: 1.0).animate(
+                                    CurvedAnimation(
+                                      parent: _entryController,
+                                      curve: Interval(
+                                        start.clamp(0.0, 1.0),
+                                        end.clamp(0.0, 1.0),
+                                        curve: Curves.easeOut,
+                                      ),
+                                    ),
+                                  );
 
-                              return _buildServiceTile(item['url']!, item['label']!, tileAnim, cardWidth);
+                              return _buildServiceTile(
+                                item['url']!,
+                                item['label']!,
+                                tileAnim,
+                                cardWidth,
+                              );
                             },
                           ),
                         ],
@@ -773,7 +984,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                               ),
                             ),
                           ),
-                          const SizedBox(height: 64), // Spacing below for page indicator
+                          const SizedBox(height: 88), // Spacing below for page indicator
                         ],
                       ),
                     ],
@@ -781,13 +992,18 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                 ),
               ),
             );
-          }
+          },
         ),
       ],
     );
   }
 
-  Widget _buildServiceTile(String url, String label, Animation<double> animation, double width) {
+  Widget _buildServiceTile(
+    String url,
+    String label,
+    Animation<double> animation,
+    double width,
+  ) {
     return AnimatedBuilder(
       animation: animation,
       builder: (context, child) {
@@ -809,6 +1025,7 @@ class _SlideTwoState extends State<_SlideTwo> with SingleTickerProviderStateMixi
                       url,
                       fit: BoxFit.cover,
                       borderRadius: 16,
+                      cacheWidth: 260,
                     ),
                   ),
                 ),
@@ -849,7 +1066,8 @@ class _SlideThree extends StatefulWidget {
   State<_SlideThree> createState() => _SlideThreeState();
 }
 
-class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderStateMixin {
+class _SlideThreeState extends State<_SlideThree>
+    with SingleTickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _titleOpacity;
   late Animation<double> _titleTranslation;
@@ -863,47 +1081,61 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
   final List<Map<String, String>> _therapists = [
     {
       'name': 'Bhoomi Doshi',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/Bhoomi-2-e1767772602403.jpg',
-      'exp': '11+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/Bhoomi-2-e1767772602403.jpg',
+      'exp': '11+ Years',
     },
     {
       'name': 'Atharva Ghorpade',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/Anirudh-e1767771975908.png',
-      'exp': '5+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/Anirudh-e1767771975908.png',
+      'exp': '5+ Years',
     },
     {
       'name': 'Sharvari Rane',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/03/Profiles-new-12-e1772586242442.jpg',
-      'exp': '2+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/03/Profiles-new-12-e1772586242442.jpg',
+      'exp': '2+ Years',
     },
     {
       'name': 'Maithili Joshi',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-07-at-1.28.09-PM-1-e1767772797618.jpeg',
-      'exp': '20+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-07-at-1.28.09-PM-1-e1767772797618.jpeg',
+      'exp': '20+ Years',
     },
     {
       'name': 'Pavitra Madhav',
       'url': 'https://zenuphealth.com/wp-content/uploads/2025/12/3.jpg',
-      'exp': '4+ Years'
+      'exp': '4+ Years',
     },
     {
       'name': 'Tanya Chawda',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/Alia-e1767772057623.jpeg',
-      'exp': '7+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/Alia-e1767772057623.jpeg',
+      'exp': '7+ Years',
     },
     {
       'name': 'Alia S',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/Tanya-e1767772524441.png',
-      'exp': '3+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/Tanya-e1767772524441.png',
+      'exp': '3+ Years',
     },
     {
       'name': 'Mary Eliza',
-      'url': 'https://zenuphealth.com/wp-content/uploads/2026/01/Image-e1767772101515.jpeg',
-      'exp': '5+ Years'
+      'url':
+          'https://zenuphealth.com/wp-content/uploads/2026/01/Image-e1767772101515.jpeg',
+      'exp': '5+ Years',
     },
   ];
 
-  final List<String> _specialties = ['CBT', 'REBT', 'Trauma', 'Grief', 'ADHD', 'Couples'];
+  final List<String> _specialties = [
+    'CBT',
+    'REBT',
+    'Trauma',
+    'Grief',
+    'ADHD',
+    'Couples',
+  ];
 
   @override
   void initState() {
@@ -994,7 +1226,6 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final duplicatedTherapists = [..._therapists, ..._therapists];
@@ -1041,9 +1272,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -1059,18 +1288,38 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                           double subOp = _subOpacity.value;
 
                           // Infographic Animation: fade and slide up from 12px at 0.15 to 0.55
-                          double infoProgress = _entryController.getCurvePercent(0.15, 0.55);
-                          double infoOp = Tween<double>(begin: 0.0, end: 1.0).transform(infoProgress);
-                          double infoTrans = Tween<double>(begin: 12.0, end: 0.0).transform(infoProgress);
+                          double infoProgress = _entryController
+                              .getCurvePercent(0.15, 0.55);
+                          double infoOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(infoProgress);
+                          double infoTrans = Tween<double>(
+                            begin: 12.0,
+                            end: 0.0,
+                          ).transform(infoProgress);
 
                           // Therapist scroller Animation: fade and slide up from 12px at 0.3 to 0.7
-                          double listProgress = _entryController.getCurvePercent(0.3, 0.7);
-                          double listOp = Tween<double>(begin: 0.0, end: 1.0).transform(listProgress);
-                          double listTrans = Tween<double>(begin: 12.0, end: 0.0).transform(listProgress);
+                          double listProgress = _entryController
+                              .getCurvePercent(0.3, 0.7);
+                          double listOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(listProgress);
+                          double listTrans = Tween<double>(
+                            begin: 12.0,
+                            end: 0.0,
+                          ).transform(listProgress);
 
                           // Category tag fade-in: at 0ms to 300ms
-                          double tagProgress = _entryController.getCurvePercent(0.0, 0.3);
-                          double tagOp = Tween<double>(begin: 0.0, end: 1.0).transform(tagProgress);
+                          double tagProgress = _entryController.getCurvePercent(
+                            0.0,
+                            0.3,
+                          );
+                          double tagOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(tagProgress);
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1081,7 +1330,10 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                                 opacity: tagOp,
                                 child: Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFF1E6),
                                       borderRadius: BorderRadius.circular(50),
@@ -1156,9 +1408,11 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                                         controller: _scrollController,
                                         scrollDirection: Axis.horizontal,
                                         physics: const ClampingScrollPhysics(),
+                                        cacheExtent: widget.screenWidth * 2,
                                         itemCount: duplicatedTherapists.length,
                                         itemBuilder: (context, index) {
-                                          final item = duplicatedTherapists[index];
+                                          final item =
+                                              duplicatedTherapists[index];
                                           return _buildTherapistCard(item);
                                         },
                                       ),
@@ -1191,7 +1445,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                               ),
                             ),
                           ),
-                          SizedBox(height: 64), // Spacing below for page indicator
+                          SizedBox(height: 88), // Spacing below for page indicator
                         ],
                       ),
                     ],
@@ -1199,7 +1453,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                 ),
               ),
             );
-          }
+          },
         ),
       ],
     );
@@ -1211,19 +1465,19 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
         'icon': Icons.verified_user_outlined,
         'color': const Color(0xFF00C9A7),
         'title': '100% Vetted',
-        'sub': 'Clinical check'
+        'sub': 'Clinical check',
       },
       {
         'icon': Icons.history_edu_outlined,
         'color': const Color(0xFFF47B20),
         'title': '8+ Yrs Avg',
-        'sub': 'Clinical exp'
+        'sub': 'Clinical exp',
       },
       {
         'icon': Icons.school_outlined,
         'color': Colors.indigo,
         'title': 'Master/Ph.D',
-        'sub': 'Licensed team'
+        'sub': 'Licensed team',
       },
     ];
 
@@ -1294,7 +1548,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -1314,13 +1568,18 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
                   child: _buildNetworkImage(
                     data['url']!,
                     fit: BoxFit.cover,
+                    cacheWidth: 280,
+                    cacheHeight: 200,
                   ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00C9A7),
                       borderRadius: BorderRadius.circular(20),
@@ -1397,8 +1656,12 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
         final emoji = specialtyIcons[name] ?? 'âœ¨';
         double start = 0.4 + (index * 0.08);
         double end = start + 0.3;
-        double opacity = Tween<double>(begin: 0.0, end: 1.0)
-            .transform(_entryController.getCurvePercent(start.clamp(0.0, 1.0), end.clamp(0.0, 1.0)));
+        double opacity = Tween<double>(begin: 0.0, end: 1.0).transform(
+          _entryController.getCurvePercent(
+            start.clamp(0.0, 1.0),
+            end.clamp(0.0, 1.0),
+          ),
+        );
 
         return Opacity(
           opacity: opacity,
@@ -1413,10 +1676,7 @@ class _SlideThreeState extends State<_SlideThree> with SingleTickerProviderState
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  emoji,
-                  style: const TextStyle(fontSize: 11),
-                ),
+                Text(emoji, style: const TextStyle(fontSize: 11)),
                 const SizedBox(width: 4),
                 Text(
                   name,
@@ -1461,25 +1721,28 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
 
   final List<Map<String, String>> _testimonials = [
     {
-      'quote': 'We were stuck in a cycle of blame and silence. Zenup\'s counselling helped us listen, reconnect and rediscover our partnership. We\'re more in love than ever.',
+      'quote':
+          'We were stuck in a cycle of blame and silence. Zenup\'s counselling helped us listen, reconnect and rediscover our partnership. We\'re more in love than ever.',
       'name': 'Sanya and Rohit',
       'location': 'Bangalore',
       'service': 'Couples Therapy',
-      'initials': 'SR'
+      'initials': 'SR',
     },
     {
-      'quote': 'As a college student dealing with severe anxiety, I was skeptical about therapy. But Zenup made it accessible and judgment-free. My therapist truly understood me.',
+      'quote':
+          'As a college student dealing with severe anxiety, I was skeptical about therapy. But Zenup made it accessible and judgment-free. My therapist truly understood me.',
       'name': 'Neha K',
       'location': 'Mumbai',
       'service': 'Anxiety',
-      'initials': 'NK'
+      'initials': 'NK',
     },
     {
-      'quote': 'Postpartum depression hit me harder than I expected. Zenup matched me with a therapist who specialized in maternal mental health. She literally saved my life.',
+      'quote':
+          'Postpartum depression hit me harder than I expected. Zenup matched me with a therapist who specialized in maternal mental health. She literally saved my life.',
       'name': 'Divya N',
       'location': 'Lucknow',
       'service': 'Postpartum Support',
-      'initials': 'DN'
+      'initials': 'DN',
     },
   ];
 
@@ -1585,9 +1848,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -1602,18 +1863,38 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                           double titleTrans = _titleTranslation.value;
 
                           // Grid Progress Animation: at 0.15 to 0.55
-                          double gridProgress = _entryController.getCurvePercent(0.15, 0.55);
-                          double gridOp = Tween<double>(begin: 0.0, end: 1.0).transform(gridProgress);
-                          double gridTrans = Tween<double>(begin: 12.0, end: 0.0).transform(gridProgress);
+                          double gridProgress = _entryController
+                              .getCurvePercent(0.15, 0.55);
+                          double gridOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(gridProgress);
+                          double gridTrans = Tween<double>(
+                            begin: 12.0,
+                            end: 0.0,
+                          ).transform(gridProgress);
 
                           // Testimonial Progress Animation: at 0.3 to 0.7
-                          double testProgress = _entryController.getCurvePercent(0.3, 0.7);
-                          double testOp = Tween<double>(begin: 0.0, end: 1.0).transform(testProgress);
-                          double testTrans = Tween<double>(begin: 12.0, end: 0.0).transform(testProgress);
+                          double testProgress = _entryController
+                              .getCurvePercent(0.3, 0.7);
+                          double testOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(testProgress);
+                          double testTrans = Tween<double>(
+                            begin: 12.0,
+                            end: 0.0,
+                          ).transform(testProgress);
 
                           // Category tag Progress: at 0ms to 300ms
-                          double tagProgress = _entryController.getCurvePercent(0.0, 0.3);
-                          double tagOp = Tween<double>(begin: 0.0, end: 1.0).transform(tagProgress);
+                          double tagProgress = _entryController.getCurvePercent(
+                            0.0,
+                            0.3,
+                          );
+                          double tagOp = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).transform(tagProgress);
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1624,7 +1905,10 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                 opacity: tagOp,
                                 child: Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFF1E6),
                                       borderRadius: BorderRadius.circular(50),
@@ -1682,13 +1966,15 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                   offset: Offset(0, gridTrans),
                                   child: GridView(
                                     shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                      childAspectRatio: 2.2,
-                                    ),
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 10,
+                                          mainAxisSpacing: 10,
+                                          childAspectRatio: 2.2,
+                                        ),
                                     children: [
                                       _AnimatedMetricCard(
                                         targetValue: 50000,
@@ -1702,7 +1988,8 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                         targetValue: 96,
                                         label: "Clients Satisfied",
                                         suffix: "%",
-                                        icon: Icons.sentiment_very_satisfied_outlined,
+                                        icon: Icons
+                                            .sentiment_very_satisfied_outlined,
                                         iconColor: const Color(0xFF00C9A7),
                                         isActive: widget.isActive,
                                       ),
@@ -1736,29 +2023,47 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                                 child: Transform.translate(
                                   offset: Offset(0, testTrans),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       AnimatedSwitcher(
-                                        duration: const Duration(milliseconds: 300),
-                                        child: _buildTestimonialCard(_testimonials[_testimonialIndex]),
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        child: _buildTestimonialCard(
+                                          _testimonials[_testimonialIndex],
+                                        ),
                                       ),
                                       const SizedBox(height: 12),
                                       // Testimonials slide index indicator dots
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: List.generate(_testimonials.length, (dotIdx) {
-                                          bool isDotActive = dotIdx == _testimonialIndex;
-                                          return AnimatedContainer(
-                                            duration: const Duration(milliseconds: 300),
-                                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                                            width: isDotActive ? 12 : 4,
-                                            height: 4,
-                                            decoration: BoxDecoration(
-                                              color: isDotActive ? const Color(0xFFF47B20) : const Color(0xFFE5E7EB),
-                                              borderRadius: BorderRadius.circular(2),
-                                            ),
-                                          );
-                                        }),
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: List.generate(
+                                          _testimonials.length,
+                                          (dotIdx) {
+                                            bool isDotActive =
+                                                dotIdx == _testimonialIndex;
+                                            return AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 300,
+                                              ),
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                  ),
+                                              width: isDotActive ? 12 : 4,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: isDotActive
+                                                    ? const Color(0xFFF47B20)
+                                                    : const Color(0xFFE5E7EB),
+                                                borderRadius:
+                                                    BorderRadius.circular(2),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1784,7 +2089,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
-                          SizedBox(height: 64), // Spacing below for page indicator
+                          SizedBox(height: 88), // Spacing below for page indicator
                         ],
                       ),
                     ],
@@ -1792,7 +2097,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
                 ),
               ),
             );
-          }
+          },
         ),
       ],
     );
@@ -1811,7 +2116,7 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Stack(
@@ -1821,12 +2126,9 @@ class _SlideFourState extends State<_SlideFour> with TickerProviderStateMixin {
             left: 0,
             top: 0,
             bottom: 0,
-            child: Container(
-              width: 4,
-              color: const Color(0xFFF47B20),
-            ),
+            child: Container(width: 4, color: const Color(0xFFF47B20)),
           ),
-          
+
           // Background double quote tag (top right)
           Positioned(
             top: 12,
@@ -2125,9 +2427,7 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: AnimatedBuilder(
@@ -2144,7 +2444,10 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                               // Premium Logo Container with Floating & Glowing Pulse Animations
                               Center(
                                 child: AnimatedBuilder(
-                                  animation: Listenable.merge([_entryController, _logoAnimationController]),
+                                  animation: Listenable.merge([
+                                    _entryController,
+                                    _logoAnimationController,
+                                  ]),
                                   builder: (context, child) {
                                     double entryOpacity = _logoOpacity.value;
                                     double entryScale = _scaleAnimation.value;
@@ -2164,18 +2467,25 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               shape: BoxShape.circle,
                                               color: Colors.white,
                                               border: Border.all(
-                                                color: const Color(0xFFF47B20).withValues(alpha: 0.1),
+                                                color: const Color(
+                                                  0xFFF47B20,
+                                                ).withValues(alpha: 0.1),
                                                 width: 4.0,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: const Color(0xFFF47B20).withValues(alpha: glowVal),
-                                                  blurRadius: 28 + (glowVal * 40),
-                                                  spreadRadius: 2 + (glowVal * 8),
+                                                  color: const Color(
+                                                    0xFFF47B20,
+                                                  ).withValues(alpha: glowVal),
+                                                  blurRadius:
+                                                      28 + (glowVal * 40),
+                                                  spreadRadius:
+                                                      2 + (glowVal * 8),
                                                   offset: const Offset(0, 6),
                                                 ),
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.03),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.03),
                                                   blurRadius: 12,
                                                   offset: const Offset(0, 4),
                                                 ),
@@ -2183,18 +2493,29 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                             ),
                                             child: ClipOval(
                                               child: Padding(
-                                                padding: const EdgeInsets.all(4.0),
+                                                padding: const EdgeInsets.all(
+                                                  4.0,
+                                                ),
                                                 child: Image.asset(
                                                   AppConstants.zenupIconPng,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) => Container(
-                                                    color: const Color(0xFFF3F4F6),
-                                                    child: const Icon(
-                                                      Icons.spa_rounded,
-                                                      color: Color(0xFFF47B20),
-                                                      size: 48,
-                                                    ),
-                                                  ),
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => Container(
+                                                        color: const Color(
+                                                          0xFFF3F4F6,
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.spa_rounded,
+                                                          color: Color(
+                                                            0xFFF47B20,
+                                                          ),
+                                                          size: 48,
+                                                        ),
+                                                      ),
                                                 ),
                                               ),
                                             ),
@@ -2275,14 +2596,20 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               height: 56,
                                               decoration: BoxDecoration(
                                                 gradient: const LinearGradient(
-                                                  colors: [Color(0xFFF47B20), Color(0xFFE06A12)],
+                                                  colors: [
+                                                    Color(0xFFF47B20),
+                                                    Color(0xFFE06A12),
+                                                  ],
                                                   begin: Alignment.centerLeft,
                                                   end: Alignment.centerRight,
                                                 ),
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: const Color(0xFFF47B20).withValues(alpha: 0.25),
+                                                    color: const Color(
+                                                      0xFFF47B20,
+                                                    ).withValues(alpha: 0.25),
                                                     blurRadius: 16,
                                                     offset: const Offset(0, 6),
                                                   ),
@@ -2303,16 +2630,29 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                             Positioned.fill(
                                               child: FractionallySizedBox(
                                                 widthFactor: 0.35,
-                                                alignment: Alignment(_shimmerAnimation.value, 0.0),
+                                                alignment: Alignment(
+                                                  _shimmerAnimation.value,
+                                                  0.0,
+                                                ),
                                                 child: Container(
                                                   decoration: BoxDecoration(
                                                     gradient: LinearGradient(
                                                       colors: [
-                                                        Colors.white.withValues(alpha: 0.0),
-                                                        Colors.white.withValues(alpha: 0.25),
-                                                        Colors.white.withValues(alpha: 0.0),
+                                                        Colors.white.withValues(
+                                                          alpha: 0.0,
+                                                        ),
+                                                        Colors.white.withValues(
+                                                          alpha: 0.25,
+                                                        ),
+                                                        Colors.white.withValues(
+                                                          alpha: 0.0,
+                                                        ),
                                                       ],
-                                                      stops: const [0.0, 0.5, 1.0],
+                                                      stops: const [
+                                                        0.0,
+                                                        0.5,
+                                                        1.0,
+                                                      ],
                                                     ),
                                                   ),
                                                 ),
@@ -2347,7 +2687,8 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                               color: Color(0xFFF47B20),
-                                              decoration: TextDecoration.underline,
+                                              decoration:
+                                                  TextDecoration.underline,
                                             ),
                                           ),
                                         ),
@@ -2383,7 +2724,8 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
         'color': const Color(0xFFF47B20),
         'bg': const Color(0xFFF47B20).withValues(alpha: 0.08),
         'lbl': '100% Private',
-        'sub': 'Strict confidentiality under clinical guidelines. No recordings.',
+        'sub':
+            'Strict confidentiality under clinical guidelines. No recordings.',
       },
       {
         'icon': Icons.verified_user_outlined,
@@ -2422,9 +2764,18 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
         final item = list[index];
         double start = 0.45 + (index * 0.08);
         double end = start + 0.25;
-        double progress = _entryController.getCurvePercent(start.clamp(0.0, 1.0), end.clamp(0.0, 1.0));
-        double translateY = Tween<double>(begin: 16.0, end: 0.0).transform(progress);
-        double opacity = Tween<double>(begin: 0.0, end: 1.0).transform(progress);
+        double progress = _entryController.getCurvePercent(
+          start.clamp(0.0, 1.0),
+          end.clamp(0.0, 1.0),
+        );
+        double translateY = Tween<double>(
+          begin: 16.0,
+          end: 0.0,
+        ).transform(progress);
+        double opacity = Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).transform(progress);
 
         return Opacity(
           opacity: opacity,
@@ -2494,7 +2845,10 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
   Widget _buildZenupPromiseCard() {
     double progress = _entryController.getCurvePercent(0.7, 0.9);
     double opacity = Tween<double>(begin: 0.0, end: 1.0).transform(progress);
-    double translateY = Tween<double>(begin: 12.0, end: 0.0).transform(progress);
+    double translateY = Tween<double>(
+      begin: 12.0,
+      end: 0.0,
+    ).transform(progress);
 
     return Opacity(
       opacity: opacity,
@@ -2575,7 +2929,10 @@ class _SlideFiveState extends State<_SlideFive> with TickerProviderStateMixin {
         children: [
           _buildSmallTrustItem(Icons.security, "HIPAA Compliant"),
           _buildSmallTrustItem(Icons.lock_outline, "24/7 Encryption"),
-          _buildSmallTrustItem(Icons.headset_mic_outlined, "Helpline: +91 7208235555"),
+          _buildSmallTrustItem(
+            Icons.headset_mic_outlined,
+            "Helpline: +91 7208235555",
+          ),
         ],
       ),
     );
@@ -2638,9 +2995,10 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _animation = Tween<double>(begin: 0, end: widget.targetValue).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _animation = Tween<double>(
+      begin: 0,
+      end: widget.targetValue,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     if (widget.isActive) {
       _controller.forward();
     }
@@ -2675,12 +3033,15 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
         builder: (context, child) {
           String displayValue;
           if (widget.decimalPlaces > 0) {
-            displayValue = _animation.value.toStringAsFixed(widget.decimalPlaces);
+            displayValue = _animation.value.toStringAsFixed(
+              widget.decimalPlaces,
+            );
           } else {
             int intVal = _animation.value.round();
             if (intVal >= 1000) {
               String raw = intVal.toString();
-              displayValue = "${raw.substring(0, raw.length - 3)},${raw.substring(raw.length - 3)}";
+              displayValue =
+                  "${raw.substring(0, raw.length - 3)},${raw.substring(raw.length - 3)}";
             } else {
               displayValue = intVal.toString();
             }
@@ -2719,11 +3080,7 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
                   color: widget.iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.iconColor,
-                  size: 16,
-                ),
+                child: Icon(widget.icon, color: widget.iconColor, size: 16),
               ),
             ],
           );
@@ -2732,4 +3089,5 @@ class _AnimatedMetricCardState extends State<_AnimatedMetricCard>
     );
   }
 }
+
 

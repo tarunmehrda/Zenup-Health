@@ -3,9 +3,19 @@
 /// Appears immediately after splash and onboarding.
 library features;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_typography.dart';
+
+// ── Therapy card image URLs ──
+// Using direct WordPress CDN URLs; images are pre-cached on screen entry.
+const List<String> _serviceSelectionImageUrls = [
+  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_kmaauqkmaauqkmaa.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_8mz4h38mz4h38mz4-1.png',
+  'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_11jezh11jezh11je.png',
+];
 
 class ServiceSelectionScreen extends StatefulWidget {
   const ServiceSelectionScreen({super.key});
@@ -22,6 +32,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
 
   late List<Animation<double>> _cardFadeAnimations;
   late List<Animation<double>> _cardSlideAnimations;
+  bool _didPrecacheImages = false;
 
   @override
   void initState() {
@@ -56,7 +67,11 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
       return Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
           parent: _entryController,
-          curve: Interval(start.clamp(0.0, 1.0), end.clamp(0.0, 1.0), curve: Curves.easeOut),
+          curve: Interval(
+            start.clamp(0.0, 1.0),
+            end.clamp(0.0, 1.0),
+            curve: Curves.easeOut,
+          ),
         ),
       );
     });
@@ -67,12 +82,50 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
       return Tween<double>(begin: 12.0, end: 0.0).animate(
         CurvedAnimation(
           parent: _entryController,
-          curve: Interval(start.clamp(0.0, 1.0), end.clamp(0.0, 1.0), curve: Curves.easeOut),
+          curve: Interval(
+            start.clamp(0.0, 1.0),
+            end.clamp(0.0, 1.0),
+            curve: Curves.easeOut,
+          ),
         ),
       );
     });
 
     _entryController.forward();
+
+    // Kick off image pre-caching immediately in initState so images are
+    // ready before the cards animate into view (no context needed for
+    // CachedNetworkImageProvider — only precacheImage needs context).
+    _warmImageCache();
+  }
+
+  /// Warms the CachedNetworkImage disk + memory cache for all therapy card
+  /// images. Called in initState so caching starts before the first frame.
+  void _warmImageCache() {
+    for (final url in _serviceSelectionImageUrls) {
+      // Prime the disk cache immediately (no context required).
+      CachedNetworkImageProvider(
+        url,
+        cacheKey: url,
+      ).resolve(const ImageConfiguration());
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecacheImages) return;
+    _didPrecacheImages = true;
+    // Also call Flutter's precacheImage so the decoded bitmap is in the
+    // image cache — this eliminates the decode-on-first-paint jank.
+    for (final url in _serviceSelectionImageUrls) {
+      unawaited(
+        precacheImage(
+          CachedNetworkImageProvider(url, cacheKey: url),
+          context,
+        ).catchError((_) {}),
+      );
+    }
   }
 
   @override
@@ -80,8 +133,6 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
     _entryController.dispose();
     super.dispose();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -97,16 +148,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.topCenter,
-              radius: 1.5,
-              colors: [
-                Color(0xFFFFFBF7), // Ambient top wash
-                Color(0xFFFFF4EA), // Subtle warm edges
-              ],
-            ),
-          ),
+          decoration: const BoxDecoration(color: Colors.white),
           child: SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -131,7 +173,10 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                       },
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(999),
@@ -248,7 +293,9 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                TextSpan(text: '. Personalized mental healthcare - '),
+                                TextSpan(
+                                  text: '. Personalized mental healthcare - ',
+                                ),
                                 TextSpan(
                                   text: 'online, confidential, and affordable',
                                   style: TextStyle(
@@ -270,7 +317,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                       title: 'Individual Therapy',
                       icon: Icons.person_outline_rounded,
                       buttonLabel: 'BOOK SESSION',
-                      imageUrl: 'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_kmaauqkmaauqkmaa.png',
+                      imageUrl: _serviceSelectionImageUrls[0],
                       onTap: () {}, // Placeholder click action
                       entryFade: _cardFadeAnimations[0],
                       entrySlide: _cardSlideAnimations[0],
@@ -279,17 +326,20 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                       title: 'Couples Therapy',
                       icon: Icons.people_outline_rounded,
                       buttonLabel: 'BOOK SESSION',
-                      imageUrl: 'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_8mz4h38mz4h38mz4-1.png',
+                      imageUrl: _serviceSelectionImageUrls[1],
                       onTap: () {}, // Placeholder click action
                       entryFade: _cardFadeAnimations[1],
                       entrySlide: _cardSlideAnimations[1],
-                      imageAlignment: const Alignment(0, -0.3), // Move image slightly to bottom to show people properly
+                      imageAlignment: const Alignment(
+                        0,
+                        -0.3,
+                      ), // Move image slightly to bottom to show people properly
                     ),
                     ServiceCardWidget(
                       title: 'Psychiatric Consultation',
                       icon: Icons.medical_services_outlined,
                       buttonLabel: 'BOOK CONSULTATION',
-                      imageUrl: 'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_11jezh11jezh11je.png',
+                      imageUrl: _serviceSelectionImageUrls[2],
                       onTap: () {}, // Placeholder click action
                       entryFade: _cardFadeAnimations[2],
                       entrySlide: _cardSlideAnimations[2],
@@ -345,9 +395,10 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.98,
+    ).animate(CurvedAnimation(parent: _pressController, curve: Curves.easeOut));
   }
 
   @override
@@ -392,7 +443,9 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: _isPressed ? 0.12 : 0.06),
+                  color: Colors.black.withValues(
+                    alpha: _isPressed ? 0.12 : 0.06,
+                  ),
                   blurRadius: _isPressed ? 32 : 24,
                   offset: const Offset(0, 8),
                 ),
@@ -404,27 +457,28 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
                 children: [
                   // 1. Cover Image
                   Positioned.fill(
-                    child: Image.network(
-                      widget.imageUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: widget.imageUrl,
+                      cacheKey: widget.imageUrl,
                       fit: BoxFit.cover,
                       alignment: widget.imageAlignment,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: const Color(0xFFFFF1E6),
-                          child: const Center(
-                            child: SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: CircularProgressIndicator(
-                                color: Color(0xFFF47B20),
-                                strokeWidth: 2.5,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      memCacheWidth: 800,
+                      maxWidthDiskCache: 1200,
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      fadeOutDuration: Duration.zero,
+                      placeholderFadeInDuration: Duration.zero,
+                      useOldImageOnUrlChange: true,
+                      imageBuilder: (context, imageProvider) => Image(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                        alignment: widget.imageAlignment,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                      placeholder: (context, url) => _TherapyCardPlaceholder(
+                        alignment: widget.imageAlignment,
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: const Color(0xFFFFF1E6),
                         child: const Center(
                           child: Icon(
@@ -477,11 +531,7 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Icon(
-                              widget.icon,
-                              color: Colors.white,
-                              size: 18,
-                            ),
+                            Icon(widget.icon, color: Colors.white, size: 18),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -499,9 +549,7 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
                     right: 0,
                     bottom: 0,
                     height: 4,
-                    child: Container(
-                      color: const Color(0xFFF47B20),
-                    ),
+                    child: Container(color: const Color(0xFFF47B20)),
                   ),
                 ],
               ),
@@ -540,9 +588,10 @@ class _AnimatedCardButtonState extends State<AnimatedCardButton>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
