@@ -645,3 +645,29 @@ class _AnimatedCardButtonState extends State<AnimatedCardButton>
     );
   }
 }
+
+class _TherapyCardPlaceholder extends StatelessWidget {
+  final Alignment alignment;
+
+  const _TherapyCardPlaceholder({
+    required this.alignment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFFF1E6),
+      alignment: alignment,
+      child: const Center(
+        child: SizedBox(
+          width: 32,
+          height: 32,
+          child: CircularProgressIndicator(
+            color: Color(0xFFF47B20),
+            strokeWidth: 2.5,
+          ),
+        ),
+      ),
+    );
+  }
+}

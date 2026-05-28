@@ -9,6 +9,7 @@ library features;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/router/app_routes.dart';
 import '../../../core/constants/app_constants.dart';
@@ -38,6 +39,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoOpacity;
   late Animation<double> _titleOpacity;
   late Animation<double> _subOpacity;
+  bool _didPrecache = false;
 
   @override
   void initState() {
@@ -51,6 +53,28 @@ class _SplashScreenState extends State<SplashScreen>
     ));
 
     _initAnimations();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didPrecache) return;
+    _didPrecache = true;
+
+    // Pre-cache critical heavy images during splash screen idle time
+    const criticalImageUrls = [
+      'https://res.cloudinary.com/dalzfjt8f/image/upload/v1775200162/Gemini_Generated_Image_9ile2d9ile2d9ile_jphxwo.png',
+      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_kmaauqkmaauqkmaa.png',
+      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_8mz4h38mz4h38mz4-1.png',
+      'https://zenuphealth.com/wp-content/uploads/2025/12/Gemini_Generated_Image_11jezh11jezh11je.png',
+    ];
+
+    for (final url in criticalImageUrls) {
+      precacheImage(
+        CachedNetworkImageProvider(url, cacheKey: url),
+        context,
+      ).catchError((_) {});
+    }
   }
 
   void _initAnimations() {

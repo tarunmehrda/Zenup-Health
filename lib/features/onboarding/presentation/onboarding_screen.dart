@@ -281,16 +281,16 @@ class _NextButtonState extends State<_NextButton>
       child: ScaleTransition(
         scale: _scaleAnim,
         child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
-            color: const Color(0xFF0D0F1A),
-            borderRadius: BorderRadius.circular(24),
+            color: const Color(0xFFF47B20),
+            borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0D0F1A).withValues(alpha: 0.18),
-                blurRadius: 14,
-                offset: const Offset(0, 5),
+                color: const Color(0xFFF47B20).withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -301,13 +301,13 @@ class _NextButtonState extends State<_NextButton>
                 'Next',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+                  letterSpacing: 0.1,
                 ),
               ),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 17),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
             ],
           ),
         ),
