@@ -8,7 +8,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../app/theme/app_typography.dart';
-import '../../../app/router/app_routes.dart';
 import '../../../core/extensions/context_extensions.dart';
 
 
@@ -314,7 +313,15 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                         'Anxiety & Stress',
                         'Safe Supportive Space',
                       ],
-                      onTap: () => context.go(AppRoutes.authLogin),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Individual Therapy booking coming soon!'),
+                            backgroundColor: Color(0xFFF47B20),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                       entryFade: _cardFadeAnimations[0],
                       entrySlide: _cardSlideAnimations[0],
                     ),
@@ -333,12 +340,20 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                         'Strengthen Connections',
                         'Improve Communication',
                       ],
-                      onTap: () => context.go(AppRoutes.authLogin),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Couples Therapy booking coming soon!'),
+                            backgroundColor: Color(0xFFF47B20),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                       entryFade: _cardFadeAnimations[1],
                       entrySlide: _cardSlideAnimations[1],
                       imageAlignment: const Alignment(
                         0,
-                        -0.3,
+                        -0.7,
                       ), // Move image slightly to bottom to show people properly
                     ),
                     ServiceCardWidget(
@@ -355,7 +370,15 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                         'Personalized Plan',
                         'Comprehensive Evaluation',
                       ],
-                      onTap: () => context.go(AppRoutes.authLogin),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Psychiatric Consultation booking coming soon!'),
+                            backgroundColor: Color(0xFFF47B20),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                       entryFade: _cardFadeAnimations[2],
                       entrySlide: _cardSlideAnimations[2],
                     ),
