@@ -35,4 +35,15 @@ class Validators {
     }
     return null;
   }
+
+  static String? validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+    final phoneRegex = RegExp(r'^\d{10}$');
+    if (!phoneRegex.hasMatch(value.trim())) {
+      return 'Please enter a valid 10-digit phone number';
+    }
+    return null;
+  }
 }

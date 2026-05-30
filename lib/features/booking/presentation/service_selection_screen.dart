@@ -8,6 +8,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../app/theme/app_typography.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../../core/extensions/context_extensions.dart';
 
 
@@ -741,8 +742,8 @@ class _AnimatedCardButtonState extends State<AnimatedCardButton>
 
   @override
   Widget build(BuildContext context) {
-    const Color orangeColor = Color(0xFFF47B20);
-    const Color darkOrangeColor = Color(0xFFE06A12);
+    final Color orangeColor = AppColors.primary;
+    final Color darkOrangeColor = AppColors.primaryContainer;
 
     return GestureDetector(
       onTapDown: (_) {
@@ -770,9 +771,9 @@ class _AnimatedCardButtonState extends State<AnimatedCardButton>
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: orangeColor.withOpacity(0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                color: orangeColor.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),

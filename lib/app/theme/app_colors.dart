@@ -9,8 +9,8 @@ class AppColors {
   AppColors._();
 
   // ── Primary Branding (from design) ──
-  static const Color primary = Color(0xFF8C5000);           // Warm brown
-  static const Color primaryContainer = Color(0xFFF2911B);   // Orange
+  static const Color primary = Color(0xFFF47B20);           // Vibrant Orange (#F47B20)
+  static const Color primaryContainer = Color(0xFFE06A12);   // Darker Rust Orange (#E06A12)
   static const Color primaryFixed = Color(0xFFFFDCBF);       // Light peach
   static const Color primaryFixedDim = Color(0xFFFFB873);    // Warm gold
   static const Color inversePrimary = Color(0xFFFFB873);     // Inverse accent
@@ -57,16 +57,16 @@ class AppColors {
   static const Color info = Color(0xFF3B82F6);
 
   // ── Icon Colors ──
-  static const Color iconActive = Color(0xFF8C5000);
+  static const Color iconActive = Color(0xFFF47B20);
   static const Color iconInactive = Color(0xFF877363);
 
   // ── Elevation / Shadow ──
   static const Color cardShadow = Color(0x0F000000);
 
   // ── Glows / Accents ──
-  static const Color accent = Color(0xFFF2911B);             // Orange accent
-  static const Color accentGlow = Color(0x33F2911B);
-  static const Color primaryGlow = Color(0x268C5000);
+  static const Color accent = Color(0xFFF47B20);             // Vibrant Orange (#F47B20)
+  static const Color accentGlow = Color(0x59F47B20);         // #F47B20 with 35% opacity
+  static const Color primaryGlow = Color(0x59F47B20);        // #F47B20 with 35% opacity
 
   // ── Legacy aliases ──
   static const Color backgroundStart = background;
